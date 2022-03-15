@@ -1,0 +1,17 @@
+<?php
+/**
+ * @var $block \SpellPayment\ExpressCheckout\Block\CheckoutButton
+ * @var $escaper \Magento\Framework\Escaper
+ */
+?>
+
+<div id="express-checkout" data-bind="scope:'express-checkout'">
+    <!-- ko template: getTemplate() --><!-- /ko -->
+</div>
+<script type="text/x-magento-init">
+{
+    "#express-checkout": {
+        "Magento_Ui/js/core/app": <?= /* @escapeNotVerified */ $block->getJsLayout();?>
+    }
+}
+</script>

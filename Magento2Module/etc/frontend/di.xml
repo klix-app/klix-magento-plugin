@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="SpellPayment\ExpressCheckout\Model\ConfigProvider" type="Magento\Payment\Model\CcGenericConfigProvider">
+        <arguments>
+            <argument name="methodCodes" xsi:type="array">
+                <item name="spellpayment_checkout" xsi:type="const">SpellPayment\ExpressCheckout\Model\Method\Checkout::CODE</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="Magento\Checkout\Model\CompositeConfigProvider">
+        <arguments>
+            <argument name="configProviders" xsi:type="array">
+                <item name="checkout_config_custom_data" xsi:type="object">SpellPayment\ExpressCheckout\Model\CustomConfigProvider</item>
+                <item name="checkout_config_express_data" xsi:type="object">SpellPayment\ExpressCheckout\Model\ExpressConfigProvider</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magento\Checkout\Block\Cart\Sidebar">
+        <plugin name="express_image"
+                type="SpellPayment\ExpressCheckout\Plugin\ExpressImage"/>
+    </type>
+</config>

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<page layout="1column" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="head.additional">
+            <block class="SpellPayment\ExpressCheckout\Block\CheckoutButton" name="express_custom_styles" template="SpellPayment_ExpressCheckout::custom-styles.phtml" ifconfig="payment/spellpayment_checkout/enable_express" />
+        </referenceBlock>
+        <referenceContainer name="checkout.cart.methods">
+            <block name="checkout.cart.expressCheckout" class="SpellPayment\ExpressCheckout\Block\CheckoutButton" template="SpellPayment_ExpressCheckout::checkout.phtml" before="checkout.cart.methods.onepage.bottom">
+                <arguments>
+                    <argument name="jsLayout" xsi:type="array">
+                        <item name="components" xsi:type="array">
+                            <item name="express-checkout" xsi:type="array">
+                                <item name="component" xsi:type="string">SpellPayment_ExpressCheckout/js/view/express-checkout-cart</item>
+                                <item name="config" xsi:type="array">
+                                    <item name="template" xsi:type="string">SpellPayment_ExpressCheckout/express-checkout-cart</item>
+                                </item>
+                            </item>
+                        </item>
+                    </argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>
