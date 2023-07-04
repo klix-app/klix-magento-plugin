@@ -4,7 +4,7 @@
         <label>Klix E-commerce Gateway</label>
         <frontend_model>SpellPayment\ExpressCheckout\Block\Adminhtml\System\Config\Fieldset\CheckoutPayment</frontend_model>
         <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
-            <label>Enable API</label>
+            <label>Enabled</label>
             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
             <config_path>payment/spellpayment_checkout/active</config_path>
         </field>

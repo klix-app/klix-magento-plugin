@@ -1,0 +1,428 @@
+diff --git a/README.md b/README.md
+index 3335a14..96fb6a1 100644
+--- a/README.md
++++ b/README.md
+@@ -6,6 +6,18 @@ For older Magento versions <= 2.3, please apply the patch from the module root f
+ 
+ # Installation Guide
+ 
++## Composer Installation (Recommended)
++
++Run the following commands:
++
++```
++composer config repositories.spell-payment/spell-express-checkout git https://github.com/klix-app/klix-magento-plugin.git
++composer require spell-payment/spell-express-checkout
++bin/magento setup:upgrade
++```
++
++## Manual Upload Installation
++
+ Steps to install Klix E-commerce Gateway Magento 2 payment module from zip archive
+ 
+ - Create a directory `app/code/` (if does not exist already) in your Magento installation root and extract contents of archive into it, you should have `app/code/SpellPayment/ExpressCheckout` folder structure after that
+diff --git a/etc/adminhtml/menu.xml b/etc/adminhtml/menu.xml
+index dc70be9..eabccab 100644
+--- a/etc/adminhtml/menu.xml
++++ b/etc/adminhtml/menu.xml
+@@ -2,12 +2,12 @@
+ <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+     <menu>
+         <add
+-                id="SpellPayment_ExpressCheckout::admin"
+-                title="Klix E-commerce Gateway"
+-                module="SpellPayment_ExpressCheckout"
+-                sortOrder="51"
+-                parent="Magento_Sales::sales"
+-                resource="SpellPayment_ExpressCheckout::paymentmethod_view"
++            id="SpellPayment_ExpressCheckout::admin"
++            title="Klix E-commerce Gateway"
++            module="SpellPayment_ExpressCheckout"
++            sortOrder="51"
++            parent="Magento_Sales::sales"
++            resource="SpellPayment_ExpressCheckout::paymentmethod_view"
+         />
+     </menu>
+ </config>
+diff --git a/etc/adminhtml/system/method_checkout.xml b/etc/adminhtml/system/method_checkout.xml
+index 5bb90f7..7ba273c 100644
+--- a/etc/adminhtml/system/method_checkout.xml
++++ b/etc/adminhtml/system/method_checkout.xml
+@@ -4,7 +4,7 @@
+         <label>Klix E-commerce Gateway</label>
+         <frontend_model>SpellPayment\ExpressCheckout\Block\Adminhtml\System\Config\Fieldset\CheckoutPayment</frontend_model>
+         <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+-            <label>Enable API</label>
++            <label>Enabled</label>
+             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+             <config_path>payment/spellpayment_checkout/active</config_path>
+         </field>
+diff --git a/view/frontend/web/template/express-checkout-cart.html b/view/frontend/web/template/express-checkout-cart.html
+index 36d50bc..ba78343 100644
+--- a/view/frontend/web/template/express-checkout-cart.html
++++ b/view/frontend/web/template/express-checkout-cart.html
+@@ -1,8 +1,5 @@
+ <if args="showButton()">
+-    <button type="button"
+-            class="express-checkout"
+-            click="expressCheckout"
+-            attr="title: $t(buttonText)">
++    <button type="button" class="express-checkout" click="expressCheckout" attr="title: $t(buttonText)">
+         <img data-bind="attr: {src: imageUrl, alt: $t(buttonText)}" />
+     </button>
+ </if>
+diff --git a/view/frontend/web/template/express-checkout.html b/view/frontend/web/template/express-checkout.html
+index 36d50bc..ba78343 100644
+--- a/view/frontend/web/template/express-checkout.html
++++ b/view/frontend/web/template/express-checkout.html
+@@ -1,8 +1,5 @@
+ <if args="showButton()">
+-    <button type="button"
+-            class="express-checkout"
+-            click="expressCheckout"
+-            attr="title: $t(buttonText)">
++    <button type="button" class="express-checkout" click="expressCheckout" attr="title: $t(buttonText)">
+         <img data-bind="attr: {src: imageUrl, alt: $t(buttonText)}" />
+     </button>
+ </if>
+diff --git a/view/frontend/web/template/minicart/content.html b/view/frontend/web/template/minicart/content.html
+index 24d2cae..76afef2 100644
+--- a/view/frontend/web/template/minicart/content.html
++++ b/view/frontend/web/template/minicart/content.html
+@@ -21,26 +21,26 @@
+                 },
+                 click: closeMinicart()
+             ">
+-        <span translate="'Close'"/>
++        <span translate="'Close'"></span>
+     </button>
+ 
+     <if args="getCartParam('summary_count')">
+         <div class="items-total">
+-            <span class="count" if="maxItemsToDisplay < getCartLineItemsCount()" text="maxItemsToDisplay"/>
+-            <translate args="'of'" if="maxItemsToDisplay < getCartLineItemsCount()"/>
+-            <span class="count" text="getCartParam('summary_count')"/>
++            <span class="count" if="maxItemsToDisplay < getCartLineItemsCount()" text="maxItemsToDisplay"></span>
++            <translate args="'of'" if="maxItemsToDisplay < getCartLineItemsCount()"></translate>
++            <span class="count" text="getCartParam('summary_count').toLocaleString(window.LOCALE)"></span>
+                 <!-- ko if: (getCartParam('summary_count') > 1) -->
+-                    <span translate="'Items in Cart'"/>
++                    <span translate="'Items in Cart'"></span>
+                 <!--/ko-->
+-                <!-- ko if: (getCartParam('summary_count') === 1) -->
+-                    <span translate="'Item in Cart'"/>
++                <!-- ko if: (getCartParam('summary_count') <= 1) -->
++                    <span translate="'Item in Cart'"></span>
+                 <!--/ko-->
+         </div>
+ 
+-        <each args="getRegion('subtotalContainer')" render=""/>
+-        <each args="getRegion('extraInfo')" render=""/>
++        <each args="getRegion('subtotalContainer')" render=""></each>
++        <each args="getRegion('extraInfo')" render=""></each>
+ 
+-        <div class="actions">
++        <div class="actions" if="getCartParam('possible_onepage_checkout')">
+             <div class="primary">
+                 <if args="isExpressButtonEnabled()">
+                     <div class="primary">
+@@ -64,34 +64,32 @@
+                             },
+                             click: closeMinicart()
+                         "
+-                        translate="'Proceed to Checkout'"
+-                />
++                        translate="'Proceed to Checkout'">
++                </button>
+                 <div data-bind="html: getCartParamUnsanitizedHtml('extra_actions')"></div>
+             </div>
+         </div>
+     </if>
+ 
+     <if args="getCartParam('summary_count')">
+-        <strong class="subtitle" translate="'Recently added item(s)'"/>
++        <strong class="subtitle" translate="'Recently added item(s)'"></strong>
+         <div data-action="scroll" class="minicart-items-wrapper">
+             <ol id="mini-cart" class="minicart-items" data-bind="foreach: { data: getCartItems(), as: 'item' }">
+                 <each args="$parent.getRegion($parent.getItemRenderer(item.product_type))"
+-                      render="{name: getTemplate(), data: item, afterRender: function() {$parents[1].initSidebar()}}"
+-                />
++                      render="{name: getTemplate(), data: item, afterRender: function() {$parents[1].initSidebar()}}"></each>
+             </ol>
+         </div>
+     </if>
+ 
+     <ifnot args="getCartParam('summary_count')">
+         <strong class="subtitle empty"
+-                translate="'You have no items in your shopping cart.'"
+-        />
++                translate="'You have no items in your shopping cart.'"></strong>
+         <if args="getCartParam('cart_empty_message')">
+-            <p class="minicart empty text" text="getCartParam('cart_empty_message')"/>
++            <p class="minicart empty text" text="getCartParam('cart_empty_message')"></p>
+             <div class="actions">
+                 <div class="secondary">
+                     <a class="action viewcart" data-bind="attr: {href: shoppingCartUrl}">
+-                        <span translate="'View and Edit Cart'"/>
++                        <span translate="'View and Edit Cart'"></span>
+                     </a>
+                 </div>
+             </div>
+@@ -101,13 +99,13 @@
+     <div class="actions" if="getCartParam('summary_count')">
+         <div class="secondary">
+             <a class="action viewcart" data-bind="attr: {href: shoppingCartUrl}">
+-                <span translate="'View and Edit Cart'"/>
++                <span translate="'View and Edit Cart'"></span>
+             </a>
+         </div>
+     </div>
+ 
+     <div id="minicart-widgets" class="minicart-widgets" if="regionHasElements('promotion')">
+-        <each args="getRegion('promotion')" render=""/>
++        <each args="getRegion('promotion')" render=""></each>
+     </div>
+ </div>
+-<each args="getRegion('sign-in-popup')" render=""/>
++<each args="getRegion('sign-in-popup')" render=""></each>
+diff --git a/view/frontend/web/template/payment/method/checkout/form.html b/view/frontend/web/template/payment/method/checkout/form.html
+index 6c876cd..243a70c 100644
+--- a/view/frontend/web/template/payment/method/checkout/form.html
++++ b/view/frontend/web/template/payment/method/checkout/form.html
+@@ -3,84 +3,78 @@
+         <div class="payment-method-select">
+             <span class="payment-method-list" data-bind="foreach: tpl_getPaymentMethods()">
+                 <div class="payment-method">
+-                <div class="payment-method-title field choice">
+-                    <input type="radio"
+-                           name="payment[method]"
+-                           class="spell-payment-radio"
+-                           data-bind="attr: {'id': $data.payment_method}, event:{ change: $parent.setSpellPaymentContent, click: $parent.selectPaymentMethod.bind($parent) }"
+-                    />
+-                    <label data-bind="attr: {'for': $data.payment_method}" class="label">
+-                        <!-- ko if: $data.single_logo -->
+-                        <span>
+-                            <img data-bind="attr: {'src': $data.single_logo}"
+-                                 height="30"
+-                                 style="max-width: 160px; max-height: 30px; vertical-align: middle;"
+-                            />
+-                        </span>
+-                        <!-- /ko -->
+-                        <!-- ko ifnot: $data.single_logo -->
+-                        <span style="display: block;
+-                              padding-bottom: 3px;
+-                              min-width: 200px;
+-                              max-width: 200px;
+-                              vertical-align: middle;"
+-                        >
+-                            <!-- ko foreach: $data.logo_urls -->
+-                                <img data-bind="attr: {'src': $data}"
+-                                     width="40" height="35"
+-                                     style="margin: 0 10px 10px 0; float: left;vertical-align: middle;"
++                    <div class="payment-method-title field choice">
++                        <input type="radio"
++                               name="payment[method]"
++                               class="spell-payment-radio"
++                               data-bind="attr: {'id': $data.payment_method}, event:{ change: $parent.setSpellPaymentContent, click: $parent.selectPaymentMethod.bind($parent) }"
++                        />
++                        <label data-bind="attr: {'for': $data.payment_method}" class="label">
++                            <!-- ko if: $data.single_logo -->
++                            <span>
++                                <img data-bind="attr: {'src': $data.single_logo}"
++                                     height="30"
++                                     style="max-width: 160px; max-height: 30px; vertical-align: middle;"
+                                 />
+-                            <!--/ko-->
+-                            <div class="clear-div"></div>
+-                        </span>
+-                        <!-- /ko -->
+-                        <span class="payment-method-cell-caption" data-bind="text: $data.name"></span>
+-                    </label>
+-                    <input type="radio"
+-                           name="spell_payment_method"
+-                           class="spell-payment-method spell-payment invisible"
+-                           data-bind="attr: {'value': $data.payment_method, 'data-countries': $data.countries_json, 'id': $data.payment_method}"
+-                    />
+-                </div>
+-                <div data-bind="afterRender: $parent.spell_fillPaymentMethodTemplate()"></div>
+-                    <!-- shows up when you select this option -->
+-                <div class="spell-content spell-payment hidden" data-bind="css: $data.payment_method">
+-                    <div class="payment-method-content">
+-                    <!-- ko foreach: $parent.getRegion('messages') -->
+-                        <!-- ko template: getTemplate() --><!-- /ko -->
+-                        <!--/ko-->
+-
+-                    <div class="checkout-agreements-block">
+-                        <!-- ko foreach: $parents[1].getRegion('before-place-order') -->
+-                        <!-- ko template: getTemplate() --><!-- /ko -->
+-                        <!--/ko-->
++                            </span>
++                            <!-- /ko -->
++                            <!-- ko ifnot: $data.single_logo -->
++                            <span style="display: block;
++                                  padding-bottom: 3px;
++                                  min-width: 200px;
++                                  max-width: 200px;
++                                  vertical-align: middle;"
++                            >
++                                <!-- ko foreach: $data.logo_urls -->
++                                    <img data-bind="attr: {'src': $data}"
++                                         width="40" height="35"
++                                         style="margin: 0 10px 10px 0; float: left;vertical-align: middle;"
++                                    />
++                                <!--/ko-->
++                                <div class="clear-div"></div>
++                            </span>
++                            <!-- /ko -->
++                            <span class="payment-method-cell-caption" data-bind="text: $data.name"></span>
++                        </label>
++                        <input type="radio"
++                               name="spell_payment_method"
++                               class="spell-payment-method spell-payment invisible"
++                               data-bind="attr: {'value': $data.payment_method, 'data-countries': $data.countries_json, 'id': $data.payment_method}"
++                        />
+                     </div>
++                    <div data-bind="afterRender: $parent.spell_fillPaymentMethodTemplate()"></div>
++                        <!-- shows up when you select this option -->
++                    <div class="spell-content spell-payment hidden" data-bind="css: $data.payment_method">
++                        <div class="payment-method-content">
++                            <!-- ko foreach: $parent.getRegion('messages') -->
++                                <!-- ko template: getTemplate() --><!-- /ko -->
++                                <!--/ko-->
+ 
+-                    <div class="payment-method-billing-address">
+-                        <!-- ko foreach: $parents[1].getRegion($parent.getBillingAddressFormName()) -->
+-                        <!-- ko template: getTemplate() --><!-- /ko -->
+-                        <!--/ko-->
+-                    </div>
+-                        <div class="actions-toolbar">
+-                            <div class="primary">
+-                                <button class="action primary checkout"
+-                                        data-bind="click: $parent.clickPlaceOrder"
+-                                >
+-                                    <span data-bind="i18n: 'Continue to payment'"></span>
+-                                </button>
++                            <div class="checkout-agreements-block">
++                                <!-- ko foreach: $parents[1].getRegion('before-place-order') -->
++                                <!-- ko template: getTemplate() --><!-- /ko -->
++                                <!--/ko-->
++                            </div>
++
++                            <div class="payment-method-billing-address">
++                                <!-- ko foreach: $parents[1].getRegion($parent.getBillingAddressFormName()) -->
++                                <!-- ko template: getTemplate() --><!-- /ko -->
++                                <!--/ko-->
++                            </div>
++                            <div class="actions-toolbar">
++                                <div class="primary">
++                                    <button class="action primary checkout" data-bind="click: $parent.clickPlaceOrder">
++                                        <span data-bind="i18n: 'Continue to payment'"></span>
++                                    </button>
++                                </div>
+                             </div>
+                         </div>
+                     </div>
+-                    </div>
+                 </div>
+             </span>
+             <div class="actions-toolbar spell-payment invisible">
+                 <div class="primary">
+-                    <button class="action primary checkout"
+-                            id="spellpayment_button"
+-                            type="submit"
+-                            data-bind="click: placeOrder"
+-                    >
++                    <button class="action primary checkout" id="spellpayment_button" type="submit" data-bind="click: placeOrder">
+                         <span data-bind="i18n: 'Continue to payment'"></span>
+                     </button>
+                 </div>
+diff --git a/view/frontend/web/template/shipping.html b/view/frontend/web/template/shipping.html
+index a78c137..4db07f0 100644
+--- a/view/frontend/web/template/shipping.html
++++ b/view/frontend/web/template/shipping.html
+@@ -1,12 +1,12 @@
+ <li id="shipping" class="checkout-shipping-address" data-bind="fadeVisible: visible()">
+-    <div class="step-title" translate="'Shipping Address'" data-role="title" />
++    <div class="step-title" translate="'Shipping Address'" data-role="title"></div>
+     <div id="checkout-step-shipping"
+          class="step-content"
+          data-role="content">
+ 
+-        <each if="!quoteIsVirtual" args="getRegion('customer-email')" render="" />
+-        <each args="getRegion('address-list')" render="" />
+-        <each args="getRegion('address-list-additional-addresses')" render="" />
++        <each if="!quoteIsVirtual" args="getRegion('customer-email')" render="" ></each>
++        <each args="getRegion('address-list')" render="" ></each>
++        <each args="getRegion('address-list-additional-addresses')" render="" ></each>
+ 
+         <!-- Address form pop up -->
+         <if args="!isFormInline">
+@@ -15,18 +15,18 @@
+                         class="action action-show-popup"
+                         click="showFormPopUp"
+                         visible="!isNewAddressAdded()">
+-                    <span translate="'New Address'" />
++                    <span translate="'New Address'"></span>
+                 </button>
+             </div>
+             <div id="opc-new-shipping-address"
+                  visible="isFormPopUpVisible()"
+-                 render="shippingFormTemplate" />
++                 render="shippingFormTemplate"></div>
+         </if>
+ 
+-        <each args="getRegion('before-form')" render="" />
++        <each args="getRegion('before-form')" render="" ></each>
+ 
+         <!-- Inline address form -->
+-        <render if="isFormInline" args="shippingFormTemplate" />
++        <render if="isFormInline" args="shippingFormTemplate"></render>
+     </div>
+ </li>
+ 
+@@ -38,9 +38,9 @@
+     <div class="checkout-shipping-method">
+         <div class="step-title"
+              translate="'Shipping Methods'"
+-             data-role="title" />
++             data-role="title"></div>
+ 
+-        <each args="getRegion('before-shipping-method-form')" render="" />
++        <each args="getRegion('before-shipping-method-form')" render="" ></each>
+ 
+         <div id="checkout-step-shipping_method"
+              class="step-content"
+@@ -53,20 +53,20 @@
+                   submit="setShippingInformation"
+                   novalidate="novalidate">
+ 
+-                <render args="shippingMethodListTemplate"/>
++                <render args="shippingMethodListTemplate"></render>
+ 
+                 <div id="onepage-checkout-shipping-method-additional-load">
+-                    <each args="getRegion('shippingAdditional')" render="" />
++                    <each args="getRegion('shippingAdditional')" render="" ></each>
+                 </div>
+                 <div role="alert"
+                      if="errorValidationMessage().length"
+                      class="message notice">
+-                    <span text="errorValidationMessage()" />
++                    <span text="errorValidationMessage()"></span>
+                 </div>
+                 <div class="actions-toolbar" id="shipping-method-buttons-container">
+                     <div class="primary">
+                         <button data-role="opc-continue" type="submit" class="button action continue primary">
+-                            <span translate="'Next'" />
++                            <span translate="'Next'"></span>
+                         </button>
+                     </div>
+                     <if args="isExpressButtonEnabled()">
+@@ -84,7 +84,7 @@
+ 
+             <div class="no-quotes-block"
+                  ifnot="rates().length > 0"
+-                 translate="'Sorry, no quotes are available for this order at this time'" />
++                 translate="'Sorry, no quotes are available for this order at this time'"></div>
+         </div>
+     </div>
+ </li>

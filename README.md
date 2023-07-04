@@ -6,6 +6,18 @@ For older Magento versions <= 2.3, please apply the patch from the module root f
 
 # Installation Guide
 
+## Composer Installation (Recommended)
+
+Run the following commands:
+
+```
+composer config repositories.spell-payment/spell-express-checkout git https://github.com/klix-app/klix-magento-plugin.git
+composer require spell-payment/spell-express-checkout
+bin/magento setup:upgrade
+```
+
+## Manual Upload Installation
+
 Steps to install Klix E-commerce Gateway Magento 2 payment module from zip archive
 
 - Create a directory `app/code/` (if does not exist already) in your Magento installation root and extract contents of archive into it, you should have `app/code/SpellPayment/ExpressCheckout` folder structure after that
